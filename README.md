@@ -13,7 +13,13 @@ ___
 
 ### Description
 
-This fork enables **Linux System Integration** by adding a Native Messaging Host. This allows the extension to leverage the host system's fingerprint reader (via `fprintd`) to simulate user verification events, bridging the gap between the browser and OS-level biometrics for development purposes, bypassing the need for the github-hosted webservice.
+This fork enables **Linux System Integration** by adding a Native Messaging Host for Linux.
+
+The linux specific extension relies on a Python script running as a Native Messaging Host to bridge the gap between the browser and the Linux fingerprint service.
+
+See [LINUX_SETUP.md](LINUX_SETUP.md) for detailed installation and setup instructions.
+
+The native host script is located in the `native/` folder. This allows the extension to leverage the host system's fingerprint reader (via `fprintd`) for user verification events, bridging the gap between the browser and OS-level biometrics for development purposes, bypassing the need for the github-hosted webservice.
 
 #### Original
 

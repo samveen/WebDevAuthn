@@ -6,11 +6,7 @@
  */
 (function () {
 	'use strict';
-	let analyser = {
-		domain: 'https://samveen.github.io/WebDevAuthn',
-		createPath: '/credential-creation.html',
-		getPath: '/credential-get.html'
-	}
+
 
 	// Relay messages from injected script to background
 	window.addEventListener('message', function (event) {
@@ -75,12 +71,9 @@
 		script.setAttribute('type', 'text/javascript');
 		script.setAttribute('src', Browser.runtime.getURL('webauthn-dev.js'));
 		// Parameters
-		script.setAttribute('dev-domain', analyser.domain);
 		script.setAttribute('development', getBoolean('option@development'));
 		script.setAttribute('virtual', getBoolean('option@virtual'));
-		script.setAttribute('pause-with-alert', getBoolean('option@pause-with-alert'));
 		script.setAttribute('instance-of-pub-key', getBoolean('option@instance-of-pub-key'));
-		script.setAttribute('debugger', getBoolean('option@debugger'));
 		script.setAttribute('debug-logging', getBoolean('option@debugLogging'));
 		script.setAttribute('platform-authenticator-available', getBoolean('option@platform-authenticator-available'));
 		// Insert on page
@@ -91,9 +84,7 @@
 	Browser.storage.local.get([
 		'option@virtual',
 		'option@development',
-		'option@pause-with-alert',
 		'option@instance-of-pub-key',
-		'option@debugger',
 		'option@debugLogging',
 		'option@platform-authenticator-available'
 	], function (items) {

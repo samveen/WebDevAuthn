@@ -143,7 +143,7 @@ const handleMessage = async (request, sender, sendResponse) => {
 
                 chrome.runtime.sendMessage({ id: request.id, status: 'completed', credential: JSON.stringify(responsePayload) });
                 document.getElementById('status').textContent = "Operation Completed.";
-                setTimeout(() => window.close(), 2000);
+                setTimeout(() => { if (window) window.close(); }, 1500);
             }
         } catch (e) {
             console.error(e);

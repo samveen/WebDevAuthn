@@ -9,10 +9,8 @@
 let options = [
 	'option@development',
 	'option@virtual',
-	'option@pause-with-alert',
 	'option@platform-authenticator-available',
 	'option@instance-of-pub-key',
-	'option@debugger',
 	'option@debugLogging'
 ];
 

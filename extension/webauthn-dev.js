@@ -9,19 +9,12 @@
 window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential) => {
 	let WebDevAuthn = {
 
-		// Dev tools URL
-		devDomain: 'https://samveen.github.io/WebDevAuthn',
-		devCreatePath: '/credential-creation.html',
-		devGetPath: '/credential-get.html',
-
 		// Initialize
 		init: function () {
 			// Default values
 			this._virtual = false;
 			this._development = false;
-			this._pauseWithAlert = false;
 			this._patchPubCred = false;
-			this._debugger = false;
 			this._debugLogging = false;
 			this._platformAuthenticatorAvailable = false;
 			// Instances ID increment
@@ -31,10 +24,6 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			let script = document.currentScript;
 			if (script) {
 				if (
-					script.dataset.devDomain ||
-					script.getAttribute('dev-domain')
-				) this.devDomain = script.dataset.devDomain || script.getAttribute('dev-domain');
-				if (
 					(script.dataset.virtual && script.dataset.virtual.toLowerCase() == 'true') ||
 					(script.getAttribute('virtual') && script.getAttribute('virtual').toLowerCase() == 'true')
 				) this._virtual = true;
@@ -43,17 +32,9 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 					(script.getAttribute('development') && script.getAttribute('development').toLowerCase() == 'true')
 				) this._development = true;
 				if (
-					(script.dataset.pauseWithAlert && script.dataset.pauseWithAlert.toLowerCase() == 'true') ||
-					(script.getAttribute('pause-with-alert') && script.getAttribute('pause-with-alert').toLowerCase() == 'true')
-				) this._pauseWithAlert = true;
-				if (
 					(script.dataset.instanceOfPubKey && script.dataset.instanceOfPubKey.toLowerCase() == 'true') ||
 					(script.getAttribute('instance-of-pub-key') && script.getAttribute('instance-of-pub-key').toLowerCase() == 'true')
 				) this._patchPubCred = true;
-				if (
-					(script.dataset.debugger && script.dataset.debugger.toLowerCase() == 'true') ||
-					(script.getAttribute('debugger') && script.getAttribute('debugger').toLowerCase() == 'true')
-				) this._debugger = true;
 				if (
 					(script.dataset.debugLogging && script.dataset.debugLogging.toLowerCase() == 'true') ||
 					(script.getAttribute('debug-logging') && script.getAttribute('debug-logging').toLowerCase() == 'true')
@@ -71,7 +52,6 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			//	'development' :			this._development,
 			//	'pause-with-alert' :	this._pauseWithAlert,
 			//	'instance-of-pub-key' :	this._patchPubCred,
-			//	'debugger' :	this._debugger,
 			//	'platform-authenticator-available' :	this._platformAuthenticatorAvailable,
 			//}, null, '\t'));
 
@@ -86,25 +66,15 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 				'isUserVerifyingPlatformAuthenticatorAvailable': PKCredential.isUserVerifyingPlatformAuthenticatorAvailable
 			};
 
+
 			// Override functions
 			let self = this;
-			credentials.create = function () { if (self._debugger) debugger; return self.create.apply(self, arguments); };
-			credentials.get = function () { if (self._debugger) debugger; return self.get.apply(self, arguments); };
+			credentials.create = function () { return self.create.apply(self, arguments); };
+			credentials.get = function () { return self.get.apply(self, arguments); };
 
 			PKCredential.isUserVerifyingPlatformAuthenticatorAvailable = function () {
-				if (self._debugger) debugger;
 				return self.isUserVerifyingPlatformAuthenticatorAvailable.apply(self, arguments);
 			}
-
-			// Listen for messages from other pages
-			cWindow.addEventListener('message', (event) => {
-				if (event.origin !== new URL(this.devDomain).origin)
-					return;
-				if (!event.data.hasOwnProperty('id')) {
-					return;
-				}
-				this.handleResponse(event.data);
-			}, false);
 		},
 
 		handleResponse: function (data) {
@@ -119,30 +89,31 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			// Do action
 			if (instance.status == 'unassigned') {
 				instance.status = 'assigned';
-				// Only return if we are NOT finished yet. 
-				// If we have a credential or completed status, fall through to processing.
+			}
+
+			if (instance.status == 'assigned') {
+				// Only proceed if we have a credential or an explicit error/completion
 				if (!data.credential && data.status !== 'completed' && data.status !== 'error') {
 					return;
 				}
-			}
-			if (instance.status == 'assigned') {
+
 				instance.status = 'completed';
 				//let credential = this.unserialize(data.credential);
 				//credential.getClientExtensionResults = () => {return {}};
 				console.log(data);
-				let obj = this.unserialize(data.credential);
-				obj.patch = this._patchPubCred ? true : false;
-				let credential = new (VirtualPublicKeyCredential())(obj);
-				// Print data
-				console.log('VirtualPublicKeyCredential', credential);
-				if (this._pauseWithAlert) {
-					return Popup('Click ok to continue ...', 'confirm').then(x => {
-						if (this._debugger) debugger;
-						if (x) instance.resolve(credential);
-						else instance.reject(new Error('WebDevAuthn action canceled.'));
-					});
+				let obj = data.credential ? this.unserialize(data.credential) : null;
+				if (obj) {
+					obj.patch = this._patchPubCred ? true : false;
+					let credential = new (VirtualPublicKeyCredential())(obj);
+					// Print data
+					console.log('VirtualPublicKeyCredential', credential);
+					instance.resolve(credential);
+				} else if (data.status === 'error') {
+					instance.reject(new Error(data.error || 'Unknown error'));
+				} else {
+					// Shouldn't happen if logic above is correct
+					instance.reject(new Error('Process cancelled or empty response.'));
 				}
-				instance.resolve(credential);
 				return;
 			}
 		},
@@ -222,7 +193,6 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 					//this.connect(instance, false);
 					//cWindow.focus();
 					this.WebAuthn.create.apply(this.WebAuthn.scope, arguments).then((credential) => {
-						if (this._debugger) debugger;
 						//instance.credential = {
 						//	id: credential.id,
 						//	rawId: credential.rawId,
@@ -235,10 +205,9 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 						instance.credential = credential;
 						instance.extensions = credential.getClientExtensionResults();
 						this.connect(instance);
+						resolve(credential);
 						//instance.win.focus();
 					}).catch(async (e) => {
-						if (this._debugger) debugger;
-						if (this._pauseWithAlert) await Popup(e.toString(), 'alert');
 						instance.reject(new Error(e.message));
 					});
 				});
@@ -292,7 +261,6 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 					//this.connect(instance, false);
 					//cWindow.focus();
 					this.WebAuthn.get.apply(this.WebAuthn.scope, arguments).then((credential) => {
-						if (this._debugger) debugger;
 						//instance.credential = {
 						//	id: credential.id,
 						//	rawId: credential.rawId,
@@ -307,10 +275,9 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 						instance.credential = credential;
 						instance.extensions = credential.getClientExtensionResults();
 						this.connect(instance);
+						resolve(credential);
 						//instance.win.focus();
 					}).catch(async (e) => {
-						if (this._debugger) debugger;
-						if (this._pauseWithAlert) await Popup(e.toString(), 'alert');
 						instance.reject(new Error(e.message));
 					});
 				});
@@ -441,14 +408,8 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 		development: function (boolean) {
 			this._development = boolean ? true : false;
 		},
-		pauseWithAlert: function (boolean) {
-			this._pauseWithAlert = boolean ? true : false;
-		},
 		instanceOfPubKey: function (boolean) {
 			this._patchPubCred = boolean ? true : false;
-		},
-		debugger: function (boolean) {
-			this._debugger = boolean ? true : false;
 		},
 		debugLogging: function (boolean) {
 			this._debugLogging = boolean ? true : false;
@@ -679,5 +640,5 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 //window.WebDevAuthn.development(true);
 //window.WebDevAuthn.pauseWithAlert(true);
 //window.WebDevAuthn.instanceOfPubKey(true);
-//window.WebDevAuthn.debugger(true);
+
 //window.WebDevAuthn.platformAuthenticatorAvailable(true);
