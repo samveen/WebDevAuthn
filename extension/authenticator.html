@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebDevAuthn Authenticator</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .status {
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>WebDevAuthn Authenticator</h2>
+    <div id="status" class="status">Waiting for requests...</div>
+    <div id="action-area">
+        <button id="unlock-btn" style="display:none; padding: 10px 20px; font-size: 16px; cursor: pointer;">Unlock with
+            Fingerprint</button>
+    </div>
+
+    <script src="js/cbor.js"></script>
+    <script src="js/webauthn-tools.js"></script>
+    <script src="js/falcon.js"></script>
+    <script src="js/webauthn-authenticator.js"></script>
+    <script src="authenticator.js"></script>
+</body>
+
+</html>

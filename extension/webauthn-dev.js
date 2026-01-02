@@ -2,25 +2,27 @@
  * WebDevAuthn
  * Script: WebAuthn Development
  * 
- * GramThanos
+ * Grammatopoulos Athanasios Vasileios (GramThanos)
+ * Modifications by Samveen
  */
 
 window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential) => {
 	let WebDevAuthn = {
 
 		// Dev tools URL
-		devDomain : 'https://gramthanos.github.io/WebDevAuthn',
-		devCreatePath : '/credential-creation.html',
-		devGetPath : '/credential-get.html',
+		devDomain: 'https://samveen.github.io/WebDevAuthn',
+		devCreatePath: '/credential-creation.html',
+		devGetPath: '/credential-get.html',
 
 		// Initialize
-		init : function() {
+		init: function () {
 			// Default values
 			this._virtual = false;
 			this._development = false;
 			this._pauseWithAlert = false;
 			this._patchPubCred = false;
 			this._debugger = false;
+			this._debugLogging = false;
 			this._platformAuthenticatorAvailable = false;
 			// Instances ID increment
 			this.idIncrement = 0;
@@ -53,6 +55,10 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 					(script.getAttribute('debugger') && script.getAttribute('debugger').toLowerCase() == 'true')
 				) this._debugger = true;
 				if (
+					(script.dataset.debugLogging && script.dataset.debugLogging.toLowerCase() == 'true') ||
+					(script.getAttribute('debug-logging') && script.getAttribute('debug-logging').toLowerCase() == 'true')
+				) this._debugLogging = true;
+				if (
 					(script.dataset.platformAuthenticatorAvailable && script.dataset.platformAuthenticatorAvailable.toLowerCase() == 'true') ||
 					(script.getAttribute('platform-authenticator-available') && script.getAttribute('platform-authenticator-available').toLowerCase() == 'true')
 				) this._platformAuthenticatorAvailable = true;
@@ -71,21 +77,21 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 
 			// Store WebAuthn references
 			this.WebAuthn = {
-				'scope' : credentials,
-				'create' : credentials.create,
-				'get' : credentials.get
+				'scope': credentials,
+				'create': credentials.create,
+				'get': credentials.get
 			};
 			this.PKCredential = {
-				'scope' : PKCredential,
-				'isUserVerifyingPlatformAuthenticatorAvailable' : PKCredential.isUserVerifyingPlatformAuthenticatorAvailable
+				'scope': PKCredential,
+				'isUserVerifyingPlatformAuthenticatorAvailable': PKCredential.isUserVerifyingPlatformAuthenticatorAvailable
 			};
 
 			// Override functions
 			let self = this;
-			credentials.create = function() {if (self._debugger) debugger; return self.create.apply(self, arguments);};
-			credentials.get = function() {if (self._debugger) debugger; return self.get.apply(self, arguments);};
+			credentials.create = function () { if (self._debugger) debugger; return self.create.apply(self, arguments); };
+			credentials.get = function () { if (self._debugger) debugger; return self.get.apply(self, arguments); };
 
-			PKCredential.isUserVerifyingPlatformAuthenticatorAvailable = function() {
+			PKCredential.isUserVerifyingPlatformAuthenticatorAvailable = function () {
 				if (self._debugger) debugger;
 				return self.isUserVerifyingPlatformAuthenticatorAvailable.apply(self, arguments);
 			}
@@ -101,7 +107,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			}, false);
 		},
 
-		handleResponse : function(data) {
+		handleResponse: function (data) {
 			// Find instance
 			let instance = false;
 			for (var i = this.instances.length - 1; i >= 0; i--) {
@@ -113,7 +119,11 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			// Do action
 			if (instance.status == 'unassigned') {
 				instance.status = 'assigned';
-				return;
+				// Only return if we are NOT finished yet. 
+				// If we have a credential or completed status, fall through to processing.
+				if (!data.credential && data.status !== 'completed' && data.status !== 'error') {
+					return;
+				}
 			}
 			if (instance.status == 'assigned') {
 				instance.status = 'completed';
@@ -137,99 +147,59 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			}
 		},
 
-		connect : function(instance, send=true) {
-			let openWin = () => {
-				return cWindow.open(
-					this.devDomain + (
-						instance.authn == 'create' ?
-							this.devCreatePath :
-							this.devGetPath
-					)
-				);
-			}
-			if (!instance.win)
-				instance.win = openWin();
-			if (!send)
-				return;
-			// Send info
-			let state = instance.status;
-			let ms = 500;
-			let tries = 0;
-			let popups = 0;
-			let pending = false;
-			let interval = setInterval(() => {
-				// If state changed, everything is ok
-				if (instance.status != state) {
-					clearInterval(interval);
-					return;
-				}
-				// If popup is pending
-				if (pending) return;
-				// Check if window closed
-				if (!instance.win || instance.win.closed) {
-					clearInterval(interval);
-					//instance.reject(new Error('Failed to open WebDevAuthn.'));
-					//instance.reject(new Error('Failed to communicate with WebDevAuthn. Maybe cross website communication is blocked.'));
-					let url = this.devDomain + (
-						instance.authn == 'create' ?
-							this.devCreatePath :
-							this.devGetPath
-					) + '?data=' + encodeURIComponent(cWindow.btoa(JSON.stringify({
-						id: instance.id,
-						type: instance.type,
-						url: instance.url,
-						options: this.serialize(instance.options),
-						credential: this.serialize(instance.credential),
-						extensions: this.serialize(instance.extensions)
-					})));
-					Popup('Copy custom analyser URL and paste back response', 'prompt', url, true).then((data) => {
-						// Decode data
-						try {
-							data = JSON.parse(data);
-						} catch (e) {
-							return;
-						}
-						instance.status = 'assigned';
-						this.handleResponse(data);
-					});
-					return;
-				}
-				// Check if waited too long
-				tries++;
-				if (tries > 15 * (1000/ms) ) {
-					clearInterval(interval);
-					instance.reject(new Error('Failed to open WebDevAuthn.'));
-					return;
-				}
-				// Send request to handle message
-				if (!instance.win) {
-					if (popups >= 3) {
-						instance.reject(new Error('Failed to open WebDevAuthn.'));
-						return;
-					}
-					popups++;
-					pending = true;
-					Popup('Unblock window opening and try again!', 'alert').then(() => {
-						instance.win = openWin();
-						pending = false;
-					});
-					return;
-				}
-				instance.win.postMessage({
+		connect: function (instance, send = true) {
+
+			if (!send) return;
+
+			// Prepare the payload
+			const payload = {
+				id: instance.id,
+				type: instance.type,
+				url: instance.url,
+				// We need to pass the options. Assuming they are serializable or we use the tools.
+				// The webauthn-authenticator expects 'options' with the right structure.
+				options: this.serialize(instance.options),
+				credential: this.serialize(instance.credential),
+				extensions: this.serialize(instance.extensions),
+
+				// Extension specific signal
+				source: 'webauthn-dev-injected',
+				action: 'trigger_authenticator',
+				data: { // Nested data for the background script proxy
 					id: instance.id,
 					type: instance.type,
 					url: instance.url,
 					options: this.serialize(instance.options),
-					credential: this.serialize(instance.credential),
-					extensions: this.serialize(instance.extensions)
-				}, this.devDomain);
-			}, ms);
+					authn: instance.authn // 'create' or 'get'
+				}
+			};
+
+			// Send request/trigger to content script
+			window.postMessage(payload, window.location.origin);
+
+			// Setup listener for response
+			const responseHandler = (event) => {
+				if (event.source !== window || !event.data) return;
+
+				if (this._debugLogging && event.data.source === 'webauthn-dev-content-script') {
+					console.log("WebDevAuthn Page: Received message", event.data);
+				}
+
+				// Check if it's the response for this ID
+				if (event.data.id === instance.id && event.data.source === 'webauthn-dev-content-script') {
+					window.removeEventListener('message', responseHandler);
+					this.handleResponse(event.data);
+				}
+			};
+			window.addEventListener('message', responseHandler);
+
+			// Fallback timeout not really needed if we trust the extension machinery, but good practice.
 		},
 
-		instances : [],
+		instances: [],
 
 		// Substitute WebAuthen functions
-		create : function() {
+		create: function () {
 			if (!this._development || arguments.length < 1 || !arguments[0].hasOwnProperty('publicKey')) {
 				// Normal Call
 				return this.WebAuthn.create.apply(this.WebAuthn.scope, arguments);
@@ -237,16 +207,16 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			else if (!this._virtual) {
 				return new Promise((resolve, reject) => {
 					let instance = {
-						status : 'unassigned',
+						status: 'unassigned',
 						type: 'physical',
 						authn: 'create',
-						url : cWindow.location.href,
-						id : ++this.idIncrement,
-						resolve : resolve,
-						reject : reject,
+						url: cWindow.location.href,
+						id: ++this.idIncrement,
+						resolve: resolve,
+						reject: reject,
 
-						options : arguments[0],
-						credential : null
+						options: arguments[0],
+						credential: null
 					};
 					this.instances.push(instance);
 					//this.connect(instance, false);
@@ -276,40 +246,47 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			else {
 				return new Promise((resolve, reject) => {
 					let instance = {
-						status : 'unassigned',
+						status: 'unassigned',
 						type: 'virtual',
 						authn: 'create',
-						url : cWindow.location.href,
-						id : ++this.idIncrement,
-						resolve : resolve,
-						reject : reject,
+						url: cWindow.location.href,
+						id: ++this.idIncrement,
+						resolve: resolve,
+						reject: reject,
 
-						options : arguments[0],
-						credential : null
+						options: arguments[0],
+						credential: null
 					};
 					this.instances.push(instance);
 					this.connect(instance);
 				});
 			}
 		},
-		get : function() {
+		get: function () {
 			if (!this._development || arguments.length < 1 || !arguments[0].hasOwnProperty('publicKey')) {
 				// Normal Call
 				return this.WebAuthn.get.apply(this.WebAuthn.scope, arguments);
 			}
+
+			// Check for Conditional UI and ignore/silence it to improve DX
+			if (arguments[0].mediation === 'conditional') {
+				console.log('WebDevAuthn: Squelching Conditional UI request to prevent popup spam.');
+				return new Promise(() => { }); // Never resolve, effectively ignored
+			}
+
 			else if (!this._virtual) {
 				return new Promise((resolve, reject) => {
 					let instance = {
-						status : 'unassigned',
+						status: 'unassigned',
 						type: 'physical',
 						authn: 'get',
-						url : cWindow.location.href,
-						id : ++this.idIncrement,
-						resolve : resolve,
-						reject : reject,
+						url: cWindow.location.href,
+						id: ++this.idIncrement,
+						resolve: resolve,
+						reject: reject,
 
-						options : arguments[0],
-						credential : null
+						options: arguments[0],
+						credential: null
 					};
 					this.instances.push(instance);
 					//this.connect(instance, false);
@@ -341,16 +318,16 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			else {
 				return new Promise((resolve, reject) => {
 					let instance = {
-						status : 'unassigned',
+						status: 'unassigned',
 						type: 'virtual',
 						authn: 'get',
-						url : cWindow.location.href,
-						id : ++this.idIncrement,
-						resolve : resolve,
-						reject : reject,
+						url: cWindow.location.href,
+						id: ++this.idIncrement,
+						resolve: resolve,
+						reject: reject,
 
-						options : arguments[0],
-						credential : null
+						options: arguments[0],
+						credential: null
 					};
 					this.instances.push(instance);
 					this.connect(instance);
@@ -358,10 +335,10 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			}
 		},
 
-		isUserVerifyingPlatformAuthenticatorAvailable : function() {
+		isUserVerifyingPlatformAuthenticatorAvailable: function () {
 			// If true overwrite
 			if (this._platformAuthenticatorAvailable) {
-				return new Promise((resolve, reject) => {resolve(true);});
+				return new Promise((resolve, reject) => { resolve(true); });
 			}
 			// Else call original
 			return this.PKCredential.isUserVerifyingPlatformAuthenticatorAvailable.apply(this.PKCredential.scope, arguments);
@@ -369,19 +346,19 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 
 		// Serialize & Unserialize functions below is based on
 		// https://gist.github.com/jonathanlurie/04fa6343e64f750d03072ac92584b5df
-		serialize : function(obj) {
-			let parseObject = function(value) {
+		serialize: function (obj) {
+			let parseObject = function (value) {
 				// Parse special arrays
 				if (
-					value instanceof Int8Array         ||
-					value instanceof Uint8Array        ||
+					value instanceof Int8Array ||
+					value instanceof Uint8Array ||
 					value instanceof Uint8ClampedArray ||
-					value instanceof Int16Array        ||
-					value instanceof Uint16Array       ||
-					value instanceof Int32Array        ||
-					value instanceof Uint32Array       ||
-					value instanceof Float32Array      ||
-					value instanceof Float64Array      ||
+					value instanceof Int16Array ||
+					value instanceof Uint16Array ||
+					value instanceof Int32Array ||
+					value instanceof Uint32Array ||
+					value instanceof Float32Array ||
+					value instanceof Float64Array ||
 					value instanceof ArrayBuffer
 				) {
 					var replacement = {
@@ -444,36 +421,39 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 			//	return value;
 			//});
 		},
-		unserialize : function(jsonStr) {
-			return JSON.parse(jsonStr, function(key, value) {
+		unserialize: function (jsonStr) {
+			return JSON.parse(jsonStr, function (key, value) {
 				try {
 					if (value.hasOwnProperty('flag') && value.flag === 'FLAG_TYPED_ARRAY') {
 						if (value.constructor === 'ArrayBuffer')
 							return new Uint8Array(value.data).buffer;
 						return new cWindow[value.constructor](value.data);
 					}
-				} catch(e) {}
+				} catch (e) { }
 				return value;
 			});
 		},
 
 		// Options
-		virtual : function(boolean) {
+		virtual: function (boolean) {
 			this._virtual = boolean ? true : false;
 		},
-		development : function(boolean) {
+		development: function (boolean) {
 			this._development = boolean ? true : false;
 		},
-		pauseWithAlert : function(boolean) {
+		pauseWithAlert: function (boolean) {
 			this._pauseWithAlert = boolean ? true : false;
 		},
-		instanceOfPubKey : function(boolean) {
+		instanceOfPubKey: function (boolean) {
 			this._patchPubCred = boolean ? true : false;
 		},
-		debugger : function(boolean) {
+		debugger: function (boolean) {
 			this._debugger = boolean ? true : false;
 		},
-		platformAuthenticatorAvailable : function(boolean) {
+		debugLogging: function (boolean) {
+			this._debugLogging = boolean ? true : false;
+		},
+		platformAuthenticatorAvailable: function (boolean) {
 			this._platformAuthenticatorAvailable = boolean ? true : false;
 		}
 	}
@@ -481,7 +461,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 	// Virtual AuthenticatorAssertionResponse
 	// Based on: https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAssertionResponse
 	let VirtualAuthenticatorAssertionResponse = function () {
-		return (class extends (class Dummy {}) {
+		return (class extends (class Dummy { }) {
 			constructor(obj) {
 				// Call dummy parent
 				super(obj);
@@ -509,7 +489,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 	// Virtual AuthenticatorAttestationResponse
 	// Based on: https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse
 	let VirtualAuthenticatorAttestationResponse = function () {
-		return (class extends (class Dummy {}) {
+		return (class extends (class Dummy { }) {
 			constructor(obj) {
 				// Call dummy parent
 				super(obj);
@@ -522,17 +502,17 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 					this['__proto__']['__proto__'] = cWindow.AuthenticatorAttestationResponse.prototype;
 			}
 
-			getAuthenticatorData () {
+			getAuthenticatorData() {
 				// ToDo https://www.w3.org/TR/webauthn-2/#iface-authenticatorattestationresponse
 				return null;
 			}
 
-			getPublicKey () {
+			getPublicKey() {
 				// ToDo https://www.w3.org/TR/webauthn-2/#iface-authenticatorattestationresponse
-				return null; 
+				return null;
 			}
 
-			getPublicKeyAlgorithm () {
+			getPublicKeyAlgorithm() {
 				// ToDo https://www.w3.org/TR/webauthn-2/#iface-authenticatorattestationresponse
 				return null;
 			}
@@ -556,7 +536,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 	let VirtualPublicKeyCredential = function () {
 		let priv = Symbol('private');
 
-		return (class extends (class Dummy {}) {
+		return (class extends (class Dummy { }) {
 			constructor(obj) {
 				// Call dummy parent
 				super();
@@ -564,10 +544,10 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 				this.type = 'public-key';
 				this.id = obj.id;
 				this.rawId = obj.rawId;
-				this.response = 
+				this.response =
 					obj.response && obj.response.authenticatorData ? new (VirtualAuthenticatorAssertionResponse())(obj.response) :
-					obj.response && obj.response.attestationObject ? new (VirtualAuthenticatorAttestationResponse())(obj.response) :
-					null;
+						obj.response && obj.response.attestationObject ? new (VirtualAuthenticatorAttestationResponse())(obj.response) :
+							null;
 				// Save extensions
 				this[priv] = {};
 				this[priv].extensions = typeof obj.getClientExtensionResults == 'function' ?
@@ -594,7 +574,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 	};
 
 	// Fake Custom Popup
-	let PopupFallback = function(text, type='alert', defaultText='') {
+	let PopupFallback = function (text, type = 'alert', defaultText = '') {
 		return new Promise((resolve, reject) => {
 			try {
 				let iframe = document.createElement('iframe');
@@ -616,21 +596,21 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 				doc.write(
 					'<body>' +
 					'<style>' +
-						'body {font-family: Tahoma; font-size: 14px; padding: 10px;} ' +
-						'#text {margin-top: 10px; font-size: 12px;white-space: pre;} ' +
-						'#value-input {width: 100%;border: 1px solid #dadce0;padding: 5px;border-radius: 2px;margin-top: 15px;}' +
-						'#buttons {font-size: 12px; text-align: right;margin-top: 20px;} ' +
-						'.btn {padding: 8px 8px; background-color: #1a73e8; color: #ffffff;border-radius: 4px; border: 1px solid #4285f4; cursor: pointer; width: 66px; text-align: center;} ' +
-						'.btn-invert {background-color: #ffffff; color: #1a73e8; border: 1px solid #dadce0;} ' +
+					'body {font-family: Tahoma; font-size: 14px; padding: 10px;} ' +
+					'#text {margin-top: 10px; font-size: 12px;white-space: pre;} ' +
+					'#value-input {width: 100%;border: 1px solid #dadce0;padding: 5px;border-radius: 2px;margin-top: 15px;}' +
+					'#buttons {font-size: 12px; text-align: right;margin-top: 20px;} ' +
+					'.btn {padding: 8px 8px; background-color: #1a73e8; color: #ffffff;border-radius: 4px; border: 1px solid #4285f4; cursor: pointer; width: 66px; text-align: center;} ' +
+					'.btn-invert {background-color: #ffffff; color: #1a73e8; border: 1px solid #dadce0;} ' +
 					'</style>' +
 					'<div id="wrapper">' +
-						'WebDevAuthn Extention says<br>' +
-						'<div id="text"></div>' +
-						(type == 'prompt' ? '<input id="value-input" type="text" value=""/>' : '') +
-						'<div id="buttons">' +
-							((type == 'confirm' || type == 'prompt') ?  '<input id="ok-btn" class="btn" type="button" value="OK"/> <input id="cancel-btn" class="btn btn-invert" type="button" value="Cancel"/>' : 
-							'<input id="ok-btn" class="btn" type="button" value="OK"/>') +
-						'</div>' +
+					'WebDevAuthn Extention says<br>' +
+					'<div id="text"></div>' +
+					(type == 'prompt' ? '<input id="value-input" type="text" value=""/>' : '') +
+					'<div id="buttons">' +
+					((type == 'confirm' || type == 'prompt') ? '<input id="ok-btn" class="btn" type="button" value="OK"/> <input id="cancel-btn" class="btn btn-invert" type="button" value="Cancel"/>' :
+						'<input id="ok-btn" class="btn" type="button" value="OK"/>') +
+					'</div>' +
 					'</div>' +
 					'</body>'
 				);
@@ -650,19 +630,19 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 				};
 				if (type == 'confirm') {
 					doc.getElementById('ok-btn').focus();
-					doc.getElementById('ok-btn').addEventListener('click', () => {close(true);}, false);
-					doc.getElementById('cancel-btn').addEventListener('click', () => {close(false);}, false);
+					doc.getElementById('ok-btn').addEventListener('click', () => { close(true); }, false);
+					doc.getElementById('cancel-btn').addEventListener('click', () => { close(false); }, false);
 				}
 				else if (type == 'prompt') {
 					let input = doc.getElementById('value-input');
 					input.value = defaultText;
 					doc.getElementById('value-input').focus();
-					doc.getElementById('ok-btn').addEventListener('click', () => {close(input.value);}, false);
-					doc.getElementById('cancel-btn').addEventListener('click', () => {close(null);}, false);
+					doc.getElementById('ok-btn').addEventListener('click', () => { close(input.value); }, false);
+					doc.getElementById('cancel-btn').addEventListener('click', () => { close(null); }, false);
 				}
 				else {
 					doc.getElementById('ok-btn').focus();
-					doc.getElementById('ok-btn').addEventListener('click', () => {close(undefined);}, false);
+					doc.getElementById('ok-btn').addEventListener('click', () => { close(undefined); }, false);
 				}
 			} catch (e) {
 				reject(undefined);
@@ -670,7 +650,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 		});
 	};
 	// Handle Popups with fallback to fake popup
-	let Popup = function(text, type='alert', defaultText, force = false) {
+	let Popup = function (text, type = 'alert', defaultText, force = false) {
 		let popup = type == 'confirm' ? cWindow.confirm : type == 'prompt' ? cWindow.prompt : cWindow.alert;
 		return new Promise((resolve, reject) => {
 			try {

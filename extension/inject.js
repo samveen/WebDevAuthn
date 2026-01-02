@@ -1,43 +1,88 @@
+/*
+ * WebDevAuthn Injector Script
+ *
+ * Grammatopoulos Athanasios Vasileios (GramThanos)
+ * Modifications by Samveen
+ */
 (function () {
 	'use strict';
 	let analyser = {
-		domain : 'https://gramthanos.github.io/WebDevAuthn',
-		createPath : '/credential-creation.html',
-		getPath : '/credential-get.html'
+		domain: 'https://samveen.github.io/WebDevAuthn',
+		createPath: '/credential-creation.html',
+		getPath: '/credential-get.html'
 	}
 
-	// If this is analyser page
-	if (window.location.host === analyser.domain) return;
+	// Relay messages from injected script to background
+	window.addEventListener('message', function (event) {
+		if (event.source !== window || !event.data || event.data.source !== 'webauthn-dev-injected') {
+			return;
+		}
+
+		if (event.data.action === 'trigger_authenticator') {
+			// Forward to background script
+			try {
+				if (chrome && chrome.runtime) { // Firefox uses browser, but chrome is usually aliased
+					(chrome || browser).runtime.sendMessage(event.data, (response) => {
+						// Optional acknowledgement
+					});
+				}
+			} catch (e) {
+				console.error("WebDevAuthn: Failed to contact background", e);
+			}
+		}
+	});
+
+	// Listen for messages from background (authenticator response) and forward to page
+	try {
+		(chrome || browser).runtime.onMessage.addListener((message, sender, sendResponse) => {
+			if (options && options['option@debugLogging']) {
+				console.log("WebDevAuthn Logic: Received message from background", message);
+			}
+			if (message.extensionResponse) {
+				if (options && options['option@debugLogging']) {
+					console.log("WebDevAuthn Logic: Posting message to window");
+				}
+				window.postMessage({
+					source: 'webauthn-dev-content-script',
+					...message
+				}, window.location.origin);
+			}
+		});
+	} catch (e) { console.error("WebDevAuthn Logic: Error in listener", e); }
+
 
 	let Browser = chrome || browser;
 	let ready = false;
 	let loaded = false;
 	let options = false;
 
-	let getBoolean = function(item) {
+	let getBoolean = function (item) {
+		// Default to TRUE if undefined (first run), effectively auto-enabling the dev mode
+		if (options[item] === undefined) return true;
 		return options[item] ? true : false;
 	}
 
-	let fireLoad = function() {
-		if(loaded) return;
+	let fireLoad = function () {
+		if (loaded) return;
 		ready = true;
-		if(!options) return;
+		if (!options) return;
 		loaded = true;
 		// If turned off disable
 		if (!getBoolean('option@development')) return;
-		
+
 		// Prepare script
 		let script = document.createElement('script');
 		script.setAttribute('type', 'text/javascript');
 		script.setAttribute('src', Browser.runtime.getURL('webauthn-dev.js'));
 		// Parameters
-		script.setAttribute('dev-domain',						analyser.domain);
-		script.setAttribute('development',						getBoolean('option@development'));
-		script.setAttribute('virtual',							getBoolean('option@virtual'));
-		script.setAttribute('pause-with-alert', 				getBoolean('option@pause-with-alert'));
-		script.setAttribute('instance-of-pub-key',				getBoolean('option@instance-of-pub-key'));
-		script.setAttribute('debugger',							getBoolean('option@debugger'));
-		script.setAttribute('platform-authenticator-available',	getBoolean('option@platform-authenticator-available'));
+		script.setAttribute('dev-domain', analyser.domain);
+		script.setAttribute('development', getBoolean('option@development'));
+		script.setAttribute('virtual', getBoolean('option@virtual'));
+		script.setAttribute('pause-with-alert', getBoolean('option@pause-with-alert'));
+		script.setAttribute('instance-of-pub-key', getBoolean('option@instance-of-pub-key'));
+		script.setAttribute('debugger', getBoolean('option@debugger'));
+		script.setAttribute('debug-logging', getBoolean('option@debugLogging'));
+		script.setAttribute('platform-authenticator-available', getBoolean('option@platform-authenticator-available'));
 		// Insert on page
 		document.head.appendChild(script);
 	};
@@ -49,10 +94,11 @@
 		'option@pause-with-alert',
 		'option@instance-of-pub-key',
 		'option@debugger',
+		'option@debugLogging',
 		'option@platform-authenticator-available'
-	], function(items){
+	], function (items) {
 		options = items;
-		if(!ready) fireLoad();
+		if (!ready) fireLoad();
 	});
 
 	// Script injector loader
@@ -68,7 +114,7 @@
 				fireLoad();
 			}
 		});
-		o.observe(document, {childList: true});
+		o.observe(document, { childList: true });
 	}
 
 }());

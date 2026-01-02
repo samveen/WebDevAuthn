@@ -3,6 +3,7 @@
  * Script: WebAuthn Development
  * 
  * GramThanos
+ * Modifications by Samveen
  */
 
 let options = [
@@ -11,11 +12,12 @@ let options = [
 	'option@pause-with-alert',
 	'option@platform-authenticator-available',
 	'option@instance-of-pub-key',
-	'option@debugger'
+	'option@debugger',
+	'option@debugLogging'
 ];
 
 // Load items form addon storage
-chrome.storage.local.get(options, function(items){
+chrome.storage.local.get(options, function (items) {
 	// For each option
 	options.forEach(option => {
 		// Load defaul value
@@ -35,11 +37,11 @@ chrome.storage.local.get(options, function(items){
 // For each option
 options.forEach(option => {
 	// Add toggle listener
-	document.getElementById(option).addEventListener('change', function() {
+	document.getElementById(option).addEventListener('change', function () {
 		// On toggle save option on/off
 		let obj = {};
 		obj[option] = this.checked;
-		chrome.storage.local.set(obj, () => {});
+		chrome.storage.local.set(obj, () => { });
 		// Fix opacity
 		document.getElementById(option).parentNode.parentNode.style.opacity = this.checked ? 1 : 0.6;
 		console.log(option, options[0]);

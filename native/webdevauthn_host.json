@@ -1,0 +1,9 @@
+{
+  "name": "io.github.samveen.webdevauthn",
+  "description": "WebDevAuthn Native Host for Fingerprint Integration",
+  "path": "/home/Samveen.Gulati/workspace/WebDevAuthn/native/webdevauthn_host.py",
+  "type": "stdio",
+  "allowed_extensions": [
+    "webdevauthn-linux@samveen.github.io"
+  ]
+}
