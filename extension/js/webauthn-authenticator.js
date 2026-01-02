@@ -29,8 +29,8 @@ window.AuthnDevice = (function (localURL) {
 		this.handleStorage = false;
 		this.askmasterkey = false;
 
-		// AAGUID based on ASCII chars (only for testing)
-		let guid = 'virtual-authn-v1'; // 16 chars
+		// AAGUID based on ASCII chars
+		let guid = 'linux-authn-v1.0'; // 16 chars
 		guid = window.authnTools.stringToBase64url(guid);
 		let aaguid = window.authnTools.base64urlToUint8Array(guid);
 
@@ -58,8 +58,8 @@ window.AuthnDevice = (function (localURL) {
 			aaguid: false
 		};
 
-		// Default master key and salt
-		let default_masterkey = 'Samveen @ UNIPI - Virtual Authenticator';
+		// Default master key seed
+		let default_masterkey = 'WebAuthnLinux - Biometric Authenticator';
 		let default_salt = (() => {
 			let salt = new Uint8Array(16);
 			for (let i = 16 - 1; i >= 0; i--) salt[i] = i;
@@ -500,7 +500,7 @@ window.AuthnDevice = (function (localURL) {
 			'challenge': window.authnTools.uint8ArrayToBase64url(challenge),
 			'origin': origin,
 			'crossOrigin': false,
-			'virtual_authenticator': 'GramThanos & University of Piraeus'
+			'authenticator': 'WebAuthnLinux Fingerprint Bridge'
 		}
 		//console.log(client_data);
 		client_data = JSON.stringify(client_data);
@@ -558,16 +558,16 @@ window.AuthnDevice = (function (localURL) {
 					indentifier: 424242424242,
 					// Issued by
 					issuedBy: {
-						countryName: 'GR', // Subject-C: ISO 3166 code specifying the country where the Authenticator vendor is incorporated
-						organizationName: 'UNIPI SSL', // Subject-O: Legal name of the Authenticator vendor
-						commonName: 'UNIPI FIDO2 Virtual Authenticator CA', // Subject-CN: A string of the vendor’s choosing
+						countryName: 'IN',
+						organizationName: 'WebAuthnLinux',
+						commonName: 'WebAuthnLinux Fingerprint Bridge CA',
 					},
 					// Issued to
 					issuedTo: {
-						countryName: 'GR', // Subject-C: ISO 3166 code specifying the country where the Authenticator vendor is incorporated
-						organizationName: 'UNIPI SSL', // Subject-O: Legal name of the Authenticator vendor
+						countryName: 'IN', // Subject-C: ISO 3166 code specifying the country where the Authenticator vendor is incorporated
+						organizationName: 'WebAuthnLinux', // Subject-O: Legal name of the Authenticator vendor
 						organizationalUnitName: 'Authenticator Attestation', // Subject-OU: Literal string "Authenticator Attestation"
-						commonName: 'UNIPI FIDO2 Virtual Authenticator', // Subject-CN: A string of the vendor’s choosing
+						commonName: 'WebAuthnLinux Fingerprint Bridge', // Subject-CN: A string of the vendor’s choosing
 					},
 
 					// AAGUID
@@ -699,7 +699,7 @@ window.AuthnDevice = (function (localURL) {
 			'challenge': window.authnTools.uint8ArrayToBase64url(challenge),
 			'origin': origin,
 			'crossOrigin': false,
-			'virtual_authenticator': 'GramThanos & University of Piraeus'
+			'authenticator': 'WebAuthnLinux Fingerprint Bridge'
 		}
 		client_data = JSON.stringify(client_data);
 		client_data = new TextEncoder().encode(client_data);

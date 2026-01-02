@@ -40,34 +40,42 @@
 		}
 
 		.option {
-			/*line-height: 34px;*/
-			margin: 10px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 12px 0;
+			border-bottom: 1px solid #e9ecef;
 		}
 
-		.option .switch {
-			float: right;
+		.option:last-child {
+			border-bottom: none;
 		}
 
-		.options {
-			/*padding-left: 45px;*/
+		.option-info {
+			flex: 1;
+			margin-right: 15px;
 		}
 
-		.options hr {
-			margin: 0px 10px;
+		.option-title {
+			display: block;
+			font-weight: 600;
+			font-size: 0.95rem;
 		}
 
-		.footer {
-			font-size: 0.8em;
-			padding: 25px 5px 5px 5px;
-			text-align: center;
+		.option-desc {
+			display: block;
+			font-size: 0.8rem;
+			color: #6c757d;
+			margin-top: 2px;
 		}
 
 		/* The switch - the box around the slider */
 		.switch {
 			position: relative;
 			display: inline-block;
-			width: 60px;
-			height: 34px;
+			width: 46px;
+			height: 24px;
+			flex-shrink: 0;
 		}
 
 		/* Hide default HTML checkbox */
@@ -85,125 +93,105 @@
 			left: 0;
 			right: 0;
 			bottom: 0;
-			background-color: #ccc;
-			-webkit-transition: .4s;
-			transition: .4s;
+			background-color: #dee2e6;
+			transition: .3s;
+			border-radius: 24px;
 		}
 
 		.slider:before {
 			position: absolute;
 			content: "";
-			height: 26px;
-			width: 26px;
-			left: 4px;
-			bottom: 4px;
+			height: 18px;
+			width: 18px;
+			left: 3px;
+			bottom: 3px;
 			background-color: white;
-			-webkit-transition: .4s;
-			transition: .4s;
-		}
-
-		.sliders-no-animations .slider {
-			-webkit-transition: all 0s ease 0s;
-			transition: all 0s ease 0s;
-		}
-
-		.sliders-no-animations .slider:before {
-			-webkit-transition: all 0s ease 0s;
-			transition: all 0s ease 0s;
+			transition: .3s;
+			border-radius: 50%;
 		}
 
 		input:checked+.slider {
-			background-color: #2196F3;
+			background-color: #007bff;
 		}
 
 		input:focus+.slider {
-			box-shadow: 0 0 1px #2196F3;
+			box-shadow: 0 0 1px #007bff;
 		}
 
 		input:checked+.slider:before {
-			-webkit-transform: translateX(26px);
-			-ms-transform: translateX(26px);
-			transform: translateX(26px);
+			transform: translateX(22px);
 		}
 
-		/* Rounded sliders */
-		.slider.round {
-			border-radius: 34px;
+		.footer {
+			margin-top: 20px;
+			font-size: 0.75rem;
+			color: #adb5bd;
+			text-align: center;
 		}
 
-		.slider.round:before {
-			border-radius: 50%;
+		a {
+			color: #007bff;
+			text-decoration: none;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		.status-msg {
+			margin-top: 10px;
+			padding: 8px;
+			border-radius: 4px;
+			font-size: 0.8rem;
+			background-color: #e7f3ff;
+			color: #0056b3;
+			display: none;
 		}
 	</style>
 </head>
 
 <body>
-	<div class="title">
-		<img src="icons/icon_48.png">
-		<h1>WebAuthnLinux</h1>
-	</div>
+	<h2>WebAuthnLinux</h2>
 
-	<div class="options sliders-no-animations">
-
+	<div class="options-container">
 		<div class="option">
+			<div class="option-info">
+				<span class="option-title">Biometric Bridge</span>
+				<span class="option-desc">Use system fingerprint login for WebAuthn requests.</span>
+			</div>
 			<label class="switch">
 				<input type="checkbox" id="option@development">
-				<span class="slider round"></span>
+				<span class="slider"></span>
 			</label>
-			<span>Development</span><br>
-			<small>Enable or Disable WebDevAutn.</small>
 		</div>
 
-		<hr />
-
-		<div id="sub-options">
-			<div class="option">
-				<label class="switch">
-					<input type="checkbox" id="option@virtual">
-					<span class="slider round"></span>
-				</label>
-				<span>Virtual Authnticator</span><br>
-				<small>Use virtual authenticator for WebAuthn.</small>
+		<div class="option">
+			<div class="option-info">
+				<span class="option-title">Debug Logs</span>
+				<span class="option-desc">Show bridge activity in the console.</span>
 			</div>
+			<label class="switch">
+				<input type="checkbox" id="option@debugLogging">
+				<span class="slider"></span>
+			</label>
+		</div>
 
-
-
-			<div class="option">
-				<label class="switch">
-					<input type="checkbox" id="option@platform-authenticator-available">
-					<span class="slider round"></span>
-				</label>
-				<span>Set Platform Authenticator Available</span><br>
-				<small>Set PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable to return true.</small>
+		<div class="option">
+			<div class="option-info">
+				<span class="option-title">Credential Patching</span>
+				<span class="option-desc">Fixes prototypes for better site compatibility.</span>
 			</div>
-
-			<div class="option">
-				<label class="switch">
-					<input type="checkbox" id="option@instance-of-pub-key">
-					<span class="slider round"></span>
-				</label>
-				<span>Instance of PublicKey</span><br>
-				<small>Return an emulation of a PublicKey object.</small>
-			</div>
-
-
-
-			<div class="option">
-				<label class="switch">
-					<input type="checkbox" id="option@debugLogging">
-					<span class="slider round"></span>
-				</label>
-				<span>Verbose Logging</span><br>
-				<small>Enable detailed console logs for debugging.</small>
-			</div>
+			<label class="switch">
+				<input type="checkbox" id="option@instance-of-pub-key">
+				<span class="slider"></span>
+			</label>
 		</div>
 	</div>
 
+	<div id="status" class="status-msg">Changes saved automatically.</div>
+
 	<div class="footer">
-		<div>Copyright © 2022, <a href="https://github.com/GramThanos" target="_blank">Athanasios Vasileios
-				Grammatopoulos</a></div>
-		<div>In collaboration with <a href="https://www.unipi.gr/" target="_blank">University of Piraeus</a></div>
-		<div>With modifications by Samveen</div>
+		WebAuthnLinux v1.0.0 | <a href="https://github.com/samveen/WebDevAuthn" target="_blank">Documentation</a>
 	</div>
 
 	<script src="popup.js"></script>

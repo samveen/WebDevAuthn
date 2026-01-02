@@ -1,7 +1,7 @@
 /*
- * WebDevAuthn Background Script
+ * WebAuthnLinux Background Script
  *
- * Grammatopoulos Athanasios Vasileios (GramThanos)
+ * Original: Grammatopoulos Athanasios Vasileios (GramThanos)
  * Modifications by Samveen
  */
 let popupWindowId = null;
@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         // If we have a stored tab ID from the pending request, use it.
         if (pendingRequest && pendingRequest.requestingTabId) {
-            console.log("WebDevAuthn: Forwarding response to tab " + pendingRequest.requestingTabId);
+            console.log("WebAuthnLinux: Forwarding response to tab " + pendingRequest.requestingTabId);
             chrome.tabs.sendMessage(pendingRequest.requestingTabId, {
                 ...message,
                 extensionResponse: true

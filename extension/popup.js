@@ -8,8 +8,6 @@
 
 let options = [
 	'option@development',
-	'option@virtual',
-	'option@platform-authenticator-available',
 	'option@instance-of-pub-key',
 	'option@debugLogging'
 ];

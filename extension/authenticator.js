@@ -1,11 +1,11 @@
 /*
- *  WebDevAuthn Extension Authenticator Logic
+ *  WebAuthnLinux Extension Authenticator Logic
  *
- * Grammatopoulos Athanasios Vasileios (GramThanos)
+ * Original: Grammatopoulos Athanasios Vasileios (GramThanos)
  * Modifications by Samveen
  */
-const BUILD_VERSION = "0.8.0-Native";
-console.log(`[Auth] Loaded Authenticator Logic. Version: ${BUILD_VERSION}`);
+const BUILD_VERSION = "1.0.0-Linux";
+console.log(`[Auth] Loaded WebAuthnLinux. Version: ${BUILD_VERSION}`);
 
 // Polyfill
 window.authnTools = window.authnTools || {};
@@ -26,8 +26,8 @@ const initAuthenticator = async () => {
             return this.storage;
         }
     };
-    const result = await chrome.storage.local.get(['virtual_credentials', 'option@debugLogging']);
-    if (result.virtual_credentials) authenticator.storage = result.virtual_credentials;
+    const result = await chrome.storage.local.get(['system_credentials', 'option@debugLogging']);
+    if (result.system_credentials) authenticator.storage = result.system_credentials;
     authenticator.debugLogging = result['option@debugLogging'] === true;
     return authenticator;
 };
@@ -43,7 +43,7 @@ const debugLog = (message, ...args) => {
 const getMasterKeyFromNativeHost = async () => {
     const statusDiv = document.getElementById('status');
     statusDiv.textContent = "Connecting to System Fingerprint Service...";
-    console.log('[Auth] Connecting to Native Host: io.github.samveen.webdevauthn');
+    console.log('[Auth] Connecting to Fingerprint Service: io.github.samveen.webdevauthn');
 
     return new Promise((resolve, reject) => {
         try {
