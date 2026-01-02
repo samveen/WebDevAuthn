@@ -6,8 +6,8 @@
  * Modifications by Samveen
  */
 
-window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential) => {
-	let WebDevAuthn = {
+window.WebAuthnLinux = window.WebAuthnLinux || ((cWindow, credentials, PKCredential) => {
+	let WebAuthnLinux = {
 
 		// Initialize
 		init: function () {
@@ -310,7 +310,7 @@ window.WebDevAuthn = window.WebDevAuthn || ((cWindow, credentials, PKCredential)
 		console.warn('WebAuthnLinux: WebAuthn is not availiable in this context.');
 	}
 	else {
-		WebDevAuthn.init();
+		WebAuthnLinux.init();
 	}
-	return WebDevAuthn;
+	return WebAuthnLinux;
 })(window, window.navigator.credentials, window.PublicKeyCredential);

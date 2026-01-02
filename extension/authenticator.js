@@ -4,7 +4,7 @@
  * Original: Grammatopoulos Athanasios Vasileios (GramThanos)
  * Modifications by Samveen
  */
-const BUILD_VERSION = "1.0.0-Linux";
+const BUILD_VERSION = "1.0.0-Alpha";
 console.log(`[Auth] Loaded WebAuthnLinux. Version: ${BUILD_VERSION}`);
 
 // Polyfill

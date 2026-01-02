@@ -1,13 +1,13 @@
 # Linux Native Messaging Setup
 
-This extension uses a native messaging host to communicate with the system's fingerprint reader and FIDO2 devices. This allows you to use your laptop's built-in fingerprint reader for WebAuthn in this development environment.
+This extension uses a native messaging host to communicate with the system's fingerprint reader. This allows you to use your laptop's built-in biometrics for WebAuthn/FIDO2 development.
 
-## Prerequisites
+## 1. Prerequisites
 
-Before installing the native host, ensure your system has the necessary dependencies installed.
+Ensure your system has the necessary dependencies installed for biometric support.
 
-### 1. Fingerprint Service (fprintd)
-The native host uses `fprintd` to verify your identity.
+### Fingerprint Service (fprintd)
+The native host use `fprintd` to verify your identity.
 - **Install**:
   ```bash
   sudo apt install fprintd libpam-fprintd
@@ -18,54 +18,71 @@ The native host uses `fprintd` to verify your identity.
   fprintd-enroll
   ```
 - **Verify**:
-  Run `fprintd-verify` to ensure it works.
+  Run `fprintd-verify` in your terminal to ensure it works correctly.
 
-### 2. FIDO2 Tools (Optional)
-Required primarily for interacting with physical FIDO2 keys.
-- **Install**:
-  ```bash
-  sudo apt install fido2-tools
-  ```
+---
 
-### 3. PCSC Daemon (Optional)
-Required for smart card interaction (some physical FIDO2 keys). **NOT required for fingerprint authentication.**
-- **Install**:
-  ```bash
-  sudo apt install pcscd
-  sudo systemctl start pcscd
-  sudo systemctl enable pcscd
-  ```
+## 2. Browser Installation
 
-### 4. U2F Udev Rules
-To allow non-root access to FIDO2 devices.
-- **Install**:
-  ```bash
-  sudo apt install libu2f-udev
-  ```
-  *(You may need to unplug and replug your device or reboot for rules to take effect.)*
+### For Google Chrome / Chromium (Recommended)
+1. Open Chrome and navigate to `chrome://extensions`.
+2. Enable **Developer Mode** (top right toggle).
+3. Click **Load unpacked** and select the `extension/` folder from this repository.
+4. **Important**: Note the **Extension ID** generated (e.g., `aofdjdfdpmfeohecddhgdjfnigggddpd`). You will need this for the next step.
 
-## Installation
+### For Firefox
+1. Open Firefox and navigate to `about:debugging`.
+2. Click on **This Firefox**.
+3. Click **Load Temporary Add-on** and select `manifest.json` from the `extension/` folder.
+   *(Note: Temporary add-ons are removed when Firefox restarts. For permanent use, the Extension ID `webdevauthn-linux@samveen.github.io` is pre-registered in the installer.)*
 
-1.  Navigate to the `native` directory of the repository.
-2.  Run the installation script:
-    ```bash
-    ./install.sh
-    ```
-    This script will:
-    - Create a manifest file `io.github.samveen.webdevauthn.json`.
-    - Install it into `~/.mozilla/native-messaging-hosts/`.
-    - Point it to the `webdevauthn_host.py` script.
+---
 
-## Verification
+## 3. Install Native Host
+
+Navigate to the `native/` directory and run the installation script.
+
+### Sideloading (Development)
+If you are sideloading in Chrome/Chromium, pass your Extension ID to the script:
+```bash
+cd native
+./install.sh <YOUR_EXTENSION_ID>
+```
+
+### Official Store Version (Production)
+Once published, the official ID will be used:
+```bash
+./install.sh <OFFICIAL_STORE_ID>
+```
+
+### What does this script do?
+- Creates a manifest file `io.github.samveen.webdevauthn.json`.
+- Automatically populates it with the correct path to `webdevauthn_host.py`.
+- Registers it in `~/.mozilla/native-messaging-hosts/` (Firefox).
+- Registers it in `~/.config/google-chrome/NativeMessagingHosts/` (Chrome).
+- Registers it in `~/.config/chromium/NativeMessagingHosts/` (Chromium).
+- Sets correct permissions for the Python script.
+
+---
+
+## 4. Verification
 
 You can run the included check script to verify your environment:
 ```bash
 ./check_fingerprint.sh
 ```
-This script checks for the presence of `fprintd`, enrolled fingerprints, `fido2-tools`, and the status of `pcscd`.
+
+### Testing the Extension
+1. Go to a WebAuthn test page (e.g., [WebDevAuthn Web Tool](https://gramthanos.github.io/WebDevAuthn/)).
+2. Open the **WebAuthnLinux** extension popup.
+3. Click **Unlock with Fingerprint**.
+4. You should see a prompt to swipe your finger on the reader (or a system notification/terminal output if you started the browser from a terminal).
+
+---
 
 ## Troubleshooting
 
--   **Browser Console Errors**: Check the browser console if the extension fails to connect.
--   **Permissions**: Ensure `webdevauthn_host.py` is executable (`chmod +x webdevauthn_host.py`).
--   **Firefox Config**: Ensure `security.webauth.u2f` is set to `true` in `about:config` (for older Firefox versions).
+- **Native Host Errors**: Check the browser's background page console (Chrome: `chrome://extensions` -> background page link).
+- **Permissions**: Ensure `webdevauthn_host.py` is executable. The `install.sh` script should handle this.
+- **Chrome ID Mismatch**: If you reload the extension and the ID changes, you MUST re-run `install.sh` with the new ID.
+- **fprintd-verify**: If the script fails to verify, try running `fprintd-verify` manually in a terminal to see if your hardware is responding.

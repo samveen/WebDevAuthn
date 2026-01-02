@@ -1,0 +1,20 @@
+# Build artifacts
+*.xpi
+*.zip
+
+# IDEs
+.idea/
+.vscode/
+*.code-workspace
+.kiro/
+.*.sw[op]
+
+# Local files, never to be checked in
+*.log
+*tmp
+*.swp
+TEST*.xml
+
+# OS Junk
+.DS_Store
+Thumbs.db
